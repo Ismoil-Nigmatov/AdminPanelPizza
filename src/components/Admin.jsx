@@ -1,57 +1,108 @@
-import React from 'react';
+import React, {useEffect, useState} from 'react';
 import "./Admin.scss"
 import moment from "moment";
+import axios from "axios";
+import Sidebar from "./Sidebar";
+import Header from "./Header";
+
 const Admin = () => {
     const currentDate = moment();
     const formattedDate = currentDate.format('MMMM, D');
+    const [pendingCount , setPendingCount] = useState(0);
+    const [progressCount , setProgressCount] = useState(0);
+    const [todayCount, setTodayCount] = useState(0);
+    const [allCount, setAllCount] = useState(0);
+    const [todayOrders , setTodayOrders] = useState([]);
+    const [orderTypeCounts, setOrderTypeCounts] = useState({
+        'DineIn': 0,
+        'ToGo': 0,
+        'Delivery': 0,
+    });
+
+    const orderStatusMap = {
+        0: 'Completed',
+        1: 'Preparing',
+        2: 'Pending',
+    };
+    const orderTypeMap = {
+        0: 'DineIn',
+        1: 'ToGo',
+        2: 'Delivery',
+    };
+
+    const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy5taWNyb3NvZnQuY29tL3dzLzIwMDgvMDYvaWRlbnRpdHkvY2xhaW1zL3JvbGUiOiJBRE1JTiIsImh0dHA6Ly9zY2hlbWFzLnhtbHNvYXAub3JnL3dzLzIwMDUvMDUvaWRlbnRpdHkvY2xhaW1zL25hbWUiOiJJc21vaWwiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjMwOGY2YzcxLTBmYzctNGExOS1hMzBmLWRjOGMyMzkxMTQ1MiIsImV4cCI6MTY5ODQ5NTk1MSwiaXNzIjoiaHR0cDovL2xvY2FsaG9zdDo1MDY5LyJ9.IdbV3sjfalb3oZ0YMVzllKu1u1UHHvk4dOOJVjmYtbw";
+    const url = "https://localhost:1000/api/";
+    const headers = {
+        'Authorization': 'Bearer ' + token
+    };
+    const config = {
+        headers: headers
+    };
+
+    const fetchData = async () => {
+        try {
+            const allResponse = await axios.get(url + "Order", config);
+
+            const today = new Date();
+            const todayStart = new Date(today);
+            todayStart.setHours(0, 0, 0, 0);
+
+            const filteredOrders = allResponse.data.filter(order => {
+                const orderDate = new Date(order.createdTime);
+                return orderDate >= todayStart && orderDate <= today;
+            });
+
+            const pendingCount = filteredOrders.filter(order => order.eStatus === 2).length;
+            const progressCount = filteredOrders.filter(order => order.eStatus === 1).length;
+
+            const counts = {
+                'DineIn': 0,
+                'ToGo': 0,
+                'Delivery': 0,
+            };
+
+            filteredOrders.forEach(order => {
+                const orderType = mapEnumToString(order.eOrderType);
+                if (orderType in counts) {
+                    counts[orderType]++;
+                }
+            });
+
+            setOrderTypeCounts(counts);
+            setTodayOrders(filteredOrders);
+            setAllCount(allResponse.data.length);
+            setTodayCount(filteredOrders.length);
+            setProgressCount(progressCount);
+            setPendingCount(pendingCount);
+        } catch (error) {
+            console.error("Error fetching data:", error);
+        }
+    };
+
+
+    const mapEnumToString = (enumValue) => {
+        switch (enumValue) {
+            case 0:
+                return 'DineIn';
+            case 1:
+                return 'ToGo';
+            case 2:
+                return 'Delivery';
+            default:
+                return 'Unknown';
+        }
+    };
+
+    useEffect(() => {
+        fetchData();
+    }, []);
 
     return (
         <div>
             <div className="app-container">
-                <div className="app-header">
-                    <div className="app-header-left">
-                        <span className="app-icon"></span>
-                        <p className="app-name">Admin</p>
-                    </div>
-                    <div className="app-header-right">
-                        <button className="profile-btn">
-                            <img src="https://assets.codepen.io/3306515/IMG_2025.jpg" alt=""/>
-                            <span>Aybüke C.</span>
-                        </button>
-                    </div>
-                    <button className="messages-btn">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="feather feather-message-circle">
-                            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" /></svg>
-                    </button>
-                </div>
+                <Header/>
                 <div className="app-content">
-                    <div className="app-sidebar">
-                        <a href="" className="app-sidebar-link active">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="feather feather-home">
-                                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-                                <polyline points="9 22 9 12 15 12 15 22" /></svg>
-                        </a>
-                        <a href="" className="app-sidebar-link">
-                            <svg className="link-icon feather feather-pie-chart" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24">
-                                <defs />
-                                <path d="M21.21 15.89A10 10 0 118 2.83M22 12A10 10 0 0012 2v10z" />
-                            </svg>
-                        </a>
-                        <a href="" className="app-sidebar-link">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="feather feather-calendar">
-                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-                                <line x1="16" y1="2" x2="16" y2="6" />
-                                <line x1="8" y1="2" x2="8" y2="6" />
-                                <line x1="3" y1="10" x2="21" y2="10" /></svg>
-                        </a>
-                        <a href="" className="app-sidebar-link">
-                            <svg className="link-icon feather feather-settings" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24">
-                                <defs />
-                                <circle cx="12" cy="12" r="3" />
-                                <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" />
-                            </svg>
-                        </a>
-                    </div>
+                    <Sidebar/>
                     <div className="projects-section">
                         <div className="projects-section-header">
                             <p>Orders</p>
@@ -60,298 +111,146 @@ const Admin = () => {
                         <div className="projects-section-line">
                             <div className="projects-status">
                                 <div className="item-status">
-                                    <span className="status-number">45</span>
+                                    <span className="status-number">{pendingCount}</span>
+                                    <span className="status-type">Pending</span>
+                                </div>
+                                <div className="item-status">
+                                    <span className="status-number">{progressCount}</span>
                                     <span className="status-type">In Progress</span>
                                 </div>
                                 <div className="item-status">
-                                    <span className="status-number">24</span>
+                                    <span className="status-number">{todayCount}</span>
                                     <span className="status-type">Today's Orders</span>
                                 </div>
                                 <div className="item-status">
-                                    <span className="status-number">62</span>
+                                    <span className="status-number">{allCount}</span>
                                     <span className="status-type">Total Orders</span>
                                 </div>
                             </div>
                         </div>
                         <div className="project-boxes jsGridView">
-                            <div className="project-box-wrapper">
-                                <div className="project-box" style={{backgroundColor:'#fee4cb'}}>
-                                    <div className="project-box-header">
-                                        <span>December 10, 2020</span>
-                                        <div className="more-wrapper">
-                                            <button className="project-btn-more">
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="feather feather-more-vertical">
-                                                    <circle cx="12" cy="12" r="1" />
-                                                    <circle cx="12" cy="5" r="1" />
-                                                    <circle cx="12" cy="19" r="1" /></svg>
-                                            </button>
+                            {todayOrders?.map(order => {
+                                let width = '0%'; // Default width
+
+                                if (order.eStatus === 0) {
+                                    width = '100%';
+                                } else if (order.eStatus === 1) {
+                                    width = '60%';
+                                } else if (order.eStatus === 2) {
+                                    width = '30%';
+                                }
+
+                                const style = {
+                                    width: width,
+                                    backgroundColor: '#ff942e',
+                                };
+
+                                const originalDate = new Date(order.createdTime); // Parse the date string
+                                const formattedDate = originalDate.toLocaleString('en-US', {
+                                    year: 'numeric',
+                                    month: '2-digit',
+                                    day: '2-digit',
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                    second: '2-digit',
+                                });
+
+                                const randomBackgroundColors = ['#e9e7fd', '#dbf6fd', '#ffd3e2', '#c8f7dc', '#d5deff', '#fee4cb'];
+                                const randomColor = randomBackgroundColors[Math.floor(Math.random() * randomBackgroundColors.length)];
+
+                                    return (
+                                        <div className="project-box-wrapper">
+                                            <div className="project-box" style={{backgroundColor: randomColor}}>
+                                                <div className="project-box-header">
+                                                    <span>{formattedDate}</span>
+                                                </div>
+                                                <div className="project-box-content-header">
+                                                    <p className="box-content-header">id : {order.id}</p>
+                                                    <p className="box-content-header">price : {order.price}</p>
+                                                    <p className="box-content-header">orderType : {orderTypeMap[order.eOrderType]}</p>
+                                                </div>
+                                                <div className="box-progress-wrapper">
+                                                    <p className="box-progress-header">{orderStatusMap[order.eStatus]}</p>
+                                                    <div className="box-progress-bar">
+                                                        <span className="box-progress" style={style}></span>
+                                                    </div>
+                                                    <p className="box-progress-percentage">{width}</p>
+                                                </div>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div className="project-box-content-header">
-                                        <p className="box-content-header">Web Designing</p>
-                                        <p className="box-content-subheader">Prototyping</p>
-                                    </div>
-                                    <div className="box-progress-wrapper">
-                                        <p className="box-progress-header">Progress</p>
-                                        <div className="box-progress-bar">
-                                            <span className="box-progress" style={{width : '60%' , backgroundColor: '#ff942e'}}></span>
-                                        </div>
-                                        <p className="box-progress-percentage">60%</p>
-                                    </div>
-                                    <div className="project-box-footer">
-                                        <div className="days-left" style={{color: '#ff942e'}}>
-                                            2 Days Left
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="project-box-wrapper">
-                                <div className="project-box" style={{backgroundColor: '#e9e7fd'}}>
-                                    <div className="project-box-header">
-                                        <span>December 10, 2020</span>
-                                        <div className="more-wrapper">
-                                            <button className="project-btn-more">
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="feather feather-more-vertical">
-                                                    <circle cx="12" cy="12" r="1" />
-                                                    <circle cx="12" cy="5" r="1" />
-                                                    <circle cx="12" cy="19" r="1" /></svg>
-                                            </button>
-                                        </div>
-                                    </div>
-                                    <div className="project-box-content-header">
-                                        <p className="box-content-header">Testing</p>
-                                        <p className="box-content-subheader">Prototyping</p>
-                                    </div>
-                                    <div className="box-progress-wrapper">
-                                        <p className="box-progress-header">Progress</p>
-                                        <div className="box-progress-bar">
-                                            <span className="box-progress" style={{width: '50%', backgroundColor: "#4f3ff0"}}></span>
-                                        </div>
-                                        <p className="box-progress-percentage">50%</p>
-                                    </div>
-                                    <div className="project-box-footer">
-                                        <div className="days-left" style={{color: "#4f3ff0"}}>
-                                            2 Days Left
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="project-box-wrapper">
-                                <div className="project-box">
-                                    <div className="project-box-header">
-                                        <span>December 10, 2020</span>
-                                        <div className="more-wrapper">
-                                            <button className="project-btn-more">
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="feather feather-more-vertical">
-                                                    <circle cx="12" cy="12" r="1" />
-                                                    <circle cx="12" cy="5" r="1" />
-                                                    <circle cx="12" cy="19" r="1" /></svg>
-                                            </button>
-                                        </div>
-                                    </div>
-                                    <div className="project-box-content-header">
-                                        <p className="box-content-header">Svg Animations</p>
-                                        <p className="box-content-subheader">Prototyping</p>
-                                    </div>
-                                    <div className="box-progress-wrapper">
-                                        <p className="box-progress-header">Progress</p>
-                                        <div className="box-progress-bar">
-                                            <span className="box-progress" style={{width: '80%',  backgroundColor: '#096c86'}}></span>
-                                        </div>
-                                        <p className="box-progress-percentage">80%</p>
-                                    </div>
-                                    <div className="project-box-footer">
-                                        <div className="days-left" style={{color: '#096c86'}}>
-                                            2 Days Left
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="project-box-wrapper">
-                                <div className="project-box" style={{backgroundColor: '#ffd3e2'}}>
-                                    <div className="project-box-header">
-                                        <span>December 10, 2020</span>
-                                        <div className="more-wrapper">
-                                            <button className="project-btn-more">
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="feather feather-more-vertical">
-                                                    <circle cx="12" cy="12" r="1" />
-                                                    <circle cx="12" cy="5" r="1" />
-                                                    <circle cx="12" cy="19" r="1" /></svg>
-                                            </button>
-                                        </div>
-                                    </div>
-                                    <div className="project-box-content-header">
-                                        <p className="box-content-header">UI Development</p>
-                                        <p className="box-content-subheader">Prototyping</p>
-                                    </div>
-                                    <div className="box-progress-wrapper">
-                                        <p className="box-progress-header">Progress</p>
-                                        <div className="box-progress-bar">
-                                            <span className="box-progress" style={{width: '20%', backgroundColor: '#df3670'}}></span>
-                                        </div>
-                                        <p className="box-progress-percentage">20%</p>
-                                    </div>
-                                    <div className="project-box-footer">
-                                        <div className="days-left" style={{color: '#df3670'}}>
-                                            2 Days Left
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="project-box-wrapper">
-                                <div className="project-box" style={{backgroundColor: '#c8f7dc'}}>
-                                    <div className="project-box-header">
-                                        <span>December 10, 2020</span>
-                                        <div className="more-wrapper">
-                                            <button className="project-btn-more">
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="feather feather-more-vertical">
-                                                    <circle cx="12" cy="12" r="1" />
-                                                    <circle cx="12" cy="5" r="1" />
-                                                    <circle cx="12" cy="19" r="1" /></svg>
-                                            </button>
-                                        </div>
-                                    </div>
-                                    <div className="project-box-content-header">
-                                        <p className="box-content-header">Data Analysis</p>
-                                        <p className="box-content-subheader">Prototyping</p>
-                                    </div>
-                                    <div className="box-progress-wrapper">
-                                        <p className="box-progress-header">Progress</p>
-                                        <div className="box-progress-bar">
-                                            <span className="box-progress" style={{width: '60%', backgroundColor: '#34c471'}}></span>
-                                        </div>
-                                        <p className="box-progress-percentage">60%</p>
-                                    </div>
-                                    <div className="project-box-footer">
-                                        <div className="days-left" style={{color: '#34c471'}}>
-                                            2 Days Left
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="project-box-wrapper">
-                                <div className="project-box" style={{backgroundColor: '#d5deff'}}>
-                                    <div className="project-box-header">
-                                        <span>December 10, 2020</span>
-                                        <div className="more-wrapper">
-                                            <button className="project-btn-more">
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="feather feather-more-vertical">
-                                                    <circle cx="12" cy="12" r="1" />
-                                                    <circle cx="12" cy="5" r="1" />
-                                                    <circle cx="12" cy="19" r="1" /></svg>
-                                            </button>
-                                        </div>
-                                    </div>
-                                    <div className="project-box-content-header">
-                                        <p className="box-content-header">Web Designing</p>
-                                        <p className="box-content-subheader">Prototyping</p>
-                                    </div>
-                                    <div className="box-progress-wrapper">
-                                        <p className="box-progress-header">Progress</p>
-                                        <div className="box-progress-bar">
-                                            <span className="box-progress" style={{width: '40%', backgroundColor: '#4067f9'}}></span>
-                                        </div>
-                                        <p className="box-progress-percentage">40%</p>
-                                    </div>
-                                    <div className="project-box-footer">
-                                        <div className="days-left" style={{color: '#4067f9'}}>
-                                            2 Days Left
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                                    )
+                                })
+                            }
                         </div>
                     </div>
-                    <div className="messages-section">
-                        <button className="messages-close">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="feather feather-x-circle">
-                                <circle cx="12" cy="12" r="10" />
-                                <line x1="15" y1="9" x2="9" y2="15" />
-                                <line x1="9" y1="9" x2="15" y2="15" /></svg>
-                        </button>
-                        <div className="projects-section-header">
-                            <p>Client Messages</p>
+                    <div style={{width:'400px', display :'flex', flexDirection : 'column', alignItems: 'center' , justifyContent : 'space-between'}}>
+                        <div className="messages-section" style={{height : '239px'}}>
+                            <div className="projects-section-header">
+                                <p>Most Ordered</p>
+                                <p><i className="fa-solid fa-chevron-down"></i> Today</p>
+                            </div>
+                            <div className="messages">
+                                <div className="most">
+                                    <img src="https://media.cnn.com/api/v1/images/stellar/prod/170504151239-bun-bo-nam-bo.jpg?q=w_1110,c_fill/f_webp" alt=""/>
+                                    <div className="img-info">
+                                        <p>Spicy seasoned seafood noodles</p>
+                                        <p>200 dishes ordered</p>
+                                    </div>
+                                </div>
+                                <div className="most">
+                                    <img src="https://media.cnn.com/api/v1/images/stellar/prod/170306134418-goi-cuon.jpg?q=w_1110,c_fill/f_webp" alt=""/>
+                                    <div className="img-info">
+                                        <p>Spicy seasoned seafood noodles</p>
+                                        <p>200 dishes ordered</p>
+                                    </div>
+                                </div>
+                                <div className="most">
+                                    <img src="https://media.cnn.com/api/v1/images/stellar/prod/170504151643-banh-knot.jpg?q=w_1110,c_fill/f_webp" alt=""/>
+                                    <div className="img-info">
+                                        <p>Spicy seasoned seafood noodles</p>
+                                        <p>200 dishes ordered</p>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        <div className="messages">
-                            <div className="message-box">
-                                    <div className="message-content">
-                                        <div className="message-header">
-                                            <div className="name">Stephanie</div>
-                                            <div className="star-checkbox">
-                                                <input type="checkbox" id="star-1"/>
-                                                    <label for="star-1">
-                                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="feather feather-star">
-                                                            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
-                                                    </label>
-                                            </div>
-                                        </div>
-                                        <p className="message-line">
-                                            I got your first assignment. It was quite good. 🥳 We can continue with the next assignment.
-                                        </p>
-                                        <p className="message-line time">
-                                            Dec, 12
-                                        </p>
-                                    </div>
+                        <div style={{marginLeft :'24px' , backgroundColor: 'white' , width : '400px' , height : '350px', borderRadius : '30px' , marginTop : '24px'}} >
+                            <div className="statistics-content">
+                                <h1 className="statistics-header">Most Type of Order</h1>
+                                <p><i className="fa-solid fa-chevron-down"></i> Today</p>
                             </div>
-                            <div className="message-box">
-                                    <div className="message-content">
-                                        <div className="message-header">
-                                            <div className="name">Mark</div>
-                                            <div className="star-checkbox">
-                                                <input type="checkbox" id="star-2"/>
-                                                    <label for="star-2">
-                                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="feather feather-star">
-                                                            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
-                                                    </label>
-                                            </div>
+                            <div className="statistics-diagram">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="188" height="188" viewBox="0 0 188 188" fill="none">
+                                    <circle opacity="0.1" cx="94" cy="93.8788" r="88" fill="#1F1D2B" stroke="white" strokeWidth="11.4783"/>
+                                    <circle opacity="0.05" cx="94.0002" cy="93.879" r="76.5217" fill="#1F1D2B" stroke="white" strokeWidth="11.4783"/>
+                                    <circle opacity="0.1" cx="93.9998" cy="93.8785" r="65.0435" fill="#1F1D2B" stroke="white" strokeWidth="11.4783"/>
+                                    <circle opacity="0.05" cx="94" cy="93.8788" r="53.5652" fill="#1F1D2B" stroke="white" strokeWidth="11.4783"/>
+                                    <path d="M6 93.8788C6 142.48 45.3989 181.879 94 181.879C142.601 181.879 182 142.48 182 93.8788C182 45.2777 142.601 5.87878 94 5.87878" stroke="#65B0F6" strokeWidth="11.4783" strokeLinecap="round"/>
+                                    <path d="M94 170.401C136.262 170.401 170.522 136.141 170.522 93.879C170.522 51.6172 136.262 17.3573 94 17.3573" stroke="#FFB572" strokeWidth="11.4783" strokeLinecap="round"/>
+                                    <path d="M94.4391 28.2834C105.782 28.2834 116.927 31.2494 126.769 36.8871C136.611 42.5248 144.808 50.6381 150.546 60.422C156.283 70.2059 159.363 81.3203 159.479 92.662C159.595 104.004 156.743 115.179 151.206 125.078C145.67 134.977 137.64 143.256 127.916 149.094C118.191 154.932 107.109 158.125 95.7688 158.357C84.4288 158.589 73.2253 155.851 63.27 150.416C53.3148 144.98 44.9539 137.036 39.0171 127.372" stroke="#FF7CA3" strokeWidth="11.4783" strokeLinecap="round"/>
+                                </svg>
+                                <div className="diagram-info">
+                                    <div>
+                                        <div className="diagram-percentage">
+                                            <div className="dinein"></div>
+                                            <p>Dine In</p>
                                         </div>
-                                        <p className="message-line">
-                                            Hey, can tell me about progress of project? I'm waiting for your response.
-                                        </p>
-                                        <p className="message-line time">
-                                            Dec, 12
-                                        </p>
+                                        <p>{orderTypeCounts['DineIn']} customers</p>
                                     </div>
-                            </div>
-                            <div className="message-box">
-                                    <div className="message-content">
-                                        <div className="message-header">
-                                            <div className="name">David</div>
-                                            <div className="star-checkbox">
-                                                <input type="checkbox" id="star-3"/>
-                                                    <label for="star-3">
-                                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="feather feather-star">
-                                                            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
-                                                    </label>
-                                            </div>
+                                    <div>
+                                        <div className="diagram-percentage">
+                                            <div className="togo"></div>
+                                            <p>To Go</p>
                                         </div>
-                                        <p className="message-line">
-                                            Awesome! 🤩 I like it. We can schedule a meeting for the next one.
-                                        </p>
-                                        <p className="message-line time">
-                                            Dec, 12
-                                        </p>
+                                        <p>{orderTypeCounts['ToGo']} customers</p>
                                     </div>
-                            </div>
-                            <div className="message-box">
-                                    <div className="message-content">
-                                        <div className="message-header">
-                                            <div className="name">Jessica</div>
-                                            <div className="star-checkbox">
-                                                <input type="checkbox" id="star-4"/>
-                                                    <label for="star-4">
-                                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="feather feather-star">
-                                                            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
-                                                    </label>
-                                            </div>
+                                    <div>
+                                        <div className="diagram-percentage">
+                                            <div className="delivery"></div>
+                                            <p>Delivery</p>
                                         </div>
-                                        <p className="message-line">
-                                            I am really impressed! Can't wait to see the final result.
-                                        </p>
-                                        <p className="message-line time">
-                                            Dec, 11
-                                        </p>
+                                        <p>{orderTypeCounts['Delivery']} customers</p>
                                     </div>
+                                </div>
                             </div>
                         </div>
                     </div>
