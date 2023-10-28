@@ -5,6 +5,7 @@ import App from './App';
 import reportWebVitals from './reportWebVitals';
 import {BrowserRouter, Routes, Route} from "react-router-dom";
 import Comment from "./components/Comment";
+import Settings from "./components/Settings";
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
@@ -13,6 +14,7 @@ root.render(
           <Routes>
               <Route element={<App/>} path='/' index/>
               <Route element={<Comment/>} path='/comments' />
+              <Route element={<Settings/>} path='/settings' />
           </Routes>
       </BrowserRouter>
   </React.StrictMode>
